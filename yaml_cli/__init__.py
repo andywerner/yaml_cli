@@ -14,6 +14,7 @@ BOOLEAN_VALUES_FALSE = ('', '0', 'false', 'False', 'no')
 
 HELP_KEY_SYNTAX = "mykey:subkey:subkey"
 
+
 class YamlCli(object):
 	DEBUG   = False
 	VERBOSE = False
@@ -57,6 +58,11 @@ class YamlCli(object):
 
 
 	def load_yaml(self, name):
+		"""
+		load YAML file
+		:param name: path & file name
+		:return: YAML as dict
+		"""
 		res = None
 		try:
 			with open(name, 'r') as stream:
@@ -70,6 +76,11 @@ class YamlCli(object):
 			sys.exit(1)
 
 	def save_yaml(self, name, data):
+		"""
+		Saves given YAML data to file
+		:param name: file path
+		:param data: YAML data
+		"""
 		try:
 			with open(name, 'w') as outfile:
 				yaml.dump(data, outfile, default_flow_style=False)
@@ -78,9 +89,21 @@ class YamlCli(object):
 			sys.exit(1)
 
 	def stdout_yaml(self, data):
+		"""
+		Prints YAML data to STDOUT
+		:param data: YAML data
+		:return:
+		"""
 		print(yaml.dump(data, default_flow_style=False))
 
 	def set_key(self, myYaml, key, value):
+		"""
+		Set or add a key to given YAML data. Call itself recursively.
+		:param myYaml: YAML data to be modified
+		:param key: key as array of key tokens
+		:param value: value of any data type
+		:return: modified YAML data
+		"""
 		# self.log("set_key {} = {} | yaml: {}".format(key, value, myYaml), debug=True)
 		if len(key) == 1:
 			myYaml[key[0]] = value
@@ -92,6 +115,13 @@ class YamlCli(object):
 		return myYaml
 
 	def rm_key(self, myYaml, key):
+		"""
+		Remove a key and it's value from given YAML data structure.
+		No error or such thrown if the key doesn't exist.
+		:param myYaml: YAML data to be modified
+		:param key: key as array of key tokens
+		:return: modified YAML data
+		"""
 		# self.log("rm_key {} | yaml: {}".format(key, myYaml), debug=True)
 		if len(key) == 1 and key[0] in myYaml:
 			del myYaml[key[0]]
@@ -101,6 +131,11 @@ class YamlCli(object):
 
 
 	def log(self, msg, debug=False):
+		"""
+		Write a message to STDOUT
+		:param msg: the message to print
+		:param debug: If True the message is only printed if --debug flag is set
+		"""
 		if self.VERBOSE or (debug and self.DEBUG):
 			ds = 'DEBUG ' if debug else ''
 			print("{debug}{msg}".format(debug=ds, msg=msg))
@@ -120,6 +155,12 @@ if __name__ == "__main__":
 #############################################
 
 class KeyValueAction(argparse.Action):
+	"""
+	Action for pair of key and string value.
+	Action that defines and handles a key value pair from command line where value is of type string.
+	All key value pairs are stored in 'set_keys' in the resulting namespace object.
+	Requires KeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(KeyValueAction, self).__init__(option_strings, dest, **kwargs)
 		self.dest = 'set_keys'
@@ -128,6 +169,13 @@ class KeyValueAction(argparse.Action):
 		self.metavar = 'KEY', 'VAL'
 
 	def __call__(self, parser, namespace, values, option_string=None):
+		"""
+		Gets called for each pair of arguments after they have been type checked.
+		:param parser:
+		:param namespace:
+		:param values: holding the values read from command line
+		:param option_string:
+		"""
 		entry = dict(
 			key = values[0],
 			val = values[1],
@@ -139,10 +187,11 @@ class KeyValueAction(argparse.Action):
 		setattr(namespace, self.dest, data)
 		self.reset_type()
 
-	def _string_to_key(self, string):
-		arr = string.split(':')
-
 	def reset_type(self):
+		"""
+		All KeyValueTypes (self.type) need to be reset once all data values are read.
+		This method silently fails if the type in self.type is not resettable.
+		"""
 		try:
 			reset = self.type.reset
 		except AttributeError:
@@ -152,18 +201,32 @@ class KeyValueAction(argparse.Action):
 
 
 class NumberKeyValueAction(KeyValueAction):
+	"""
+	Action for pair of key and numeric value. (int and float)
+	Requires NumberKeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(NumberKeyValueAction, self).__init__(option_strings, dest, **kwargs)
 		self.type = NumberKeyValueType()
 
 
 class BooleanKeyValueAction(KeyValueAction):
+	"""
+	Action for pair of key and boolean value.
+	Valid input to be interpreted as booleans are defined in BOOLEAN_VALUES_TRUE and BOOLEAN_VALUES_FALSE
+	Requires BooleanKeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(BooleanKeyValueAction, self).__init__(option_strings, dest, **kwargs)
 		self.type = BooleanKeyValueType()
 
 
 class NullKeyAction(KeyValueAction):
+	"""
+	Action for a key which value will be set to null.
+	Expects only one argument namely the key.
+	Requires KeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(NullKeyAction, self).__init__(option_strings, dest, **kwargs)
 		self.nargs = 1
@@ -184,6 +247,11 @@ class NullKeyAction(KeyValueAction):
 
 
 class RmKeyAction(KeyValueAction):
+	"""
+	Action for a key which value will be removed from YAML data.
+	Expects only one argument namely the key.
+	Requires KeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(RmKeyAction, self).__init__(option_strings, dest, **kwargs)
 		self.nargs = 1
@@ -204,6 +272,11 @@ class RmKeyAction(KeyValueAction):
 
 
 class ListKeyValueAction(KeyValueAction):
+	"""
+	Action for a key with one, multiple or none value.
+	Can be provided with any number of values
+	Requires KeyValueType
+	"""
 	def __init__(self, option_strings, dest, nargs=None, **kwargs):
 		super(ListKeyValueAction, self).__init__(option_strings, dest, **kwargs)
 		self.nargs = '+'
@@ -227,11 +300,22 @@ class ListKeyValueAction(KeyValueAction):
 #############################################
 
 class KeyValueType(object):
+	"""
+	Type to validate key value pairs.
+	Unlike other types in argparse, this one validates different types.
+	First it expects a value of type key followed by a value of type value.
+	It needs to be reset to handle the next pair beginning with a key.
+	"""
 	def __init__(self):
 		self.key_expected = True
 		self.last_key = None
 
 	def __call__(self, string):
+		"""
+		Called for each value.
+		:param string:
+		:return:
+		"""
 		if self.key_expected:
 			self.key_expected = False
 			self.last_key = string
@@ -241,10 +325,19 @@ class KeyValueType(object):
 			return self.verify_val(string)
 
 	def reset(self):
+		"""
+		resets its instance so that it can accept the next pair beginning with a key
+		:return:
+		"""
 		self.key_expected = True
 		self.last_key = None
 
 	def verify_key(self, string):
+		"""
+		Tests if the given string is a valid key and tokenizes it.
+		:param string: string read from command line
+		:return: tokenized key as list
+		"""
 		arr = string.split(':')
 		if len(arr) != len(filter(None, arr)):
 			msg = "'{}' is not a valid key".format(string)
@@ -253,6 +346,12 @@ class KeyValueType(object):
 			return arr
 
 	def verify_val(self, string):
+		"""
+		Returns the value as it is.
+		Can be overridden in inheriting classes.
+		:param string:
+		:return:
+		"""
 		return string
 
 
