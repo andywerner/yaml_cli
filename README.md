@@ -29,6 +29,7 @@ Support of different data types:
     -s andy:test:a_string 'Text with whitespaces' \     # string value
     -l andy:test:basic_list_support item1 and2 and3 \   # list value
     --null andy:test:null_value                         # null value
+# output - YAML doesn't keep order
 andy:
   test:
     a_string: Text with whitespaces
@@ -46,7 +47,7 @@ Delete keys:
 > yaml_cli 
     -s andy:subkey_one foo 
     -s andy:subkey_two will_be_deleted                  # add key andy:subkey_two ... 
-    -d andy:subkey_two                                  # ... rend removing it again
+    -d andy:subkey_two                                  # ... and removing it again. gone!
 andy:
   subkey_one: foo
   ```

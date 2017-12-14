@@ -81,18 +81,19 @@ class YamlCli(object):
 		print(yaml.dump(data, default_flow_style=False))
 
 	def set_key(self, myYaml, key, value):
-		self.log("set_key {} = {} | yaml: {}".format(key, value, myYaml), debug=True)
+		# self.log("set_key {} = {} | yaml: {}".format(key, value, myYaml), debug=True)
 		if len(key) == 1:
 			myYaml[key[0]] = value
 		else:
 			if not key[0] in myYaml or type(myYaml[key[0]]) is not dict:
-				self.log("set_key {} = {} creating item".format(key, value, myYaml), debug=True)
+				# self.log("set_key {} = {} creating item".format(key, value, myYaml), debug=True)
 				myYaml[key[0]] = {}
 			myYaml[key[0]] = self.set_key(myYaml[key[0]], key[1:], value)
 		return myYaml
 
 	def rm_key(self, myYaml, key):
-		if len(key) == 1:
+		# self.log("rm_key {} | yaml: {}".format(key, myYaml), debug=True)
+		if len(key) == 1 and key[0] in myYaml:
 			del myYaml[key[0]]
 		elif key[0] in myYaml:
 			myYaml[key[0]] = self.rm_key(myYaml[key[0]], key[1:])
