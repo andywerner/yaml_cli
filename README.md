@@ -10,7 +10,48 @@ pip install .
 ```
 
 
+## Examples
 
+How to set a key:
+
+```bash
+> yaml_cli -s key:subkey value
+key:
+  subkey: value
+```
+
+Support of different data types:
+
+```bash
+> yaml_cli \
+    -n andy:test:number 5 \                             # number value
+    -b andy:test:bolean_value true \                    # boolean value
+    -s andy:test:a_string 'Text with whitespaces' \     # string value
+    -l andy:test:basic_list_support item1 and2 and3 \   # list value
+    --null andy:test:null_value                         # null value
+andy:
+  test:
+    a_string: Text with whitespaces
+    basic_list_support:
+    - item1
+    - and2
+    - and3
+    bolean_value: true
+    null_value: null
+    number: 5
+```
+
+Delete keys:
+```bash
+> yaml_cli 
+    -s andy:subkey_one foo 
+    -s andy:subkey_two will_be_deleted                  # add key andy:subkey_two ... 
+    -d andy:subkey_two                                  # ... rend removing it again
+andy:
+  subkey_one: foo
+  ```
+  
+  
 ## Usage
 
 ```text
@@ -45,35 +86,10 @@ optional arguments:
   -v, --verbose         Verbose output
   --debug               Debug output
 ```
-
-## Examples
-
-How to set a key:
-
-```bash
-> yaml_cli -s key:subkey value
-key:
-  subkey: value
-```
-
-Support of different data types:
-
-```bash
-> yaml_cli -s andy overrideMe -n andy:test:number 5 -b andy:test:bolean_value true -s andy:test:a_string 'Text with whitespaces' -l andy:test:basic_list_support item1 and2 and3
-andy:
-  test:
-    a_string: Text with whitespaces
-    basic_list_support:
-    - item1
-    - and2
-    - and3
-    bolean_value: true
-    number: 5
-```
-
-Delete keys:
-```bash
-> yaml_cli -s andy:subkey_one foo -s andy:subkey_two will_be_deleted -d andy:subkey_two
-andy:
-  subkey_one: foo
-  ```
+  
+  
+  
+  
+  
+  
+  
