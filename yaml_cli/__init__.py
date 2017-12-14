@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 import argparse
@@ -9,8 +9,8 @@ from yaml_cli.version import __version__
 ACTION_SET = 'set'
 ACTION_RM  = 'rm'
 
-BOOLEAN_VALUES_TRUE = ('1', 'true', 'True')
-BOOLEAN_VALUES_FALSE = ('', '0', 'false', 'False')
+BOOLEAN_VALUES_TRUE = ('1', 'true', 'True', 'yes')
+BOOLEAN_VALUES_FALSE = ('', '0', 'false', 'False', 'no')
 
 HELP_KEY_SYNTAX = "mykey:subkey:subkey"
 
@@ -20,9 +20,9 @@ class YamlCli(object):
 
 	def __init__(self):
 		parser = argparse.ArgumentParser()
-		parser.add_argument('file', type=str, help="yaml file to load")
+		parser.add_argument('-i', '--input', type=str, help="YAML file to load. Of not provided an empty YAML will be the base for all operations.")
 		parser.add_argument('-o', '--output', type=str, help="Output file. If not provided output is written to STDOUT")
-		parser.add_argument('-d', '--delete', action=RmKeyAction, help="Delete key: {}".format(HELP_KEY_SYNTAX))
+		parser.add_argument('-d', '--delete', action=RmKeyAction, help="Delete key: {}. Skipped silently if key doesn't exist.".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-s', '--string', action=KeyValueAction, help="Set key with string value: {} 'my value'".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-n', '--number', action=NumberKeyValueAction, help="Set key with number value: {} 3.7".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-b', '--boolean', action=BooleanKeyValueAction, help="Set key with number value: {} true (possible values: {} {})".format(HELP_KEY_SYNTAX, BOOLEAN_VALUES_TRUE, BOOLEAN_VALUES_FALSE))
@@ -37,7 +37,9 @@ class YamlCli(object):
 		self.VERBOSE = args.verbose or args.debug
 		self.log("Input argparse: {}".format(args), debug=True)
 
-		myYaml = self.load_yaml(args.file)
+		myYaml = {}
+		if args.input:
+			myYaml = self.load_yaml(args.input)
 
 		if args.set_keys:
 			for elem in args.set_keys:
@@ -48,7 +50,10 @@ class YamlCli(object):
 					self.log("deleting key {}".format(elem))
 					myYaml = self.rm_key(myYaml, elem['key'])
 
-		print(yaml.dump(myYaml, default_flow_style=False))
+		if args.output:
+			self.save_yaml(args.output, myYaml)
+		else:
+			self.stdout_yaml(myYaml)
 
 
 	def load_yaml(self, name):
@@ -64,18 +69,29 @@ class YamlCli(object):
 			print(e)
 			sys.exit(1)
 
+	def save_yaml(self, name, data):
+		try:
+			with open(name, 'w') as outfile:
+				yaml.dump(data, outfile, default_flow_style=False)
+		except IOError as e:
+			print(e)
+			sys.exit(1)
+
+	def stdout_yaml(self, data):
+		print(yaml.dump(data, default_flow_style=False))
+
 	def set_key(self, myYaml, key, value):
-		self.log("set_key {} = {}".format(key, value), debug=True)
+		self.log("set_key {} = {} | yaml: {}".format(key, value, myYaml), debug=True)
 		if len(key) == 1:
 			myYaml[key[0]] = value
 		else:
-			if not key[0] in myYaml:
+			if not key[0] in myYaml or type(myYaml[key[0]]) is not dict:
+				self.log("set_key {} = {} creating item".format(key, value, myYaml), debug=True)
 				myYaml[key[0]] = {}
 			myYaml[key[0]] = self.set_key(myYaml[key[0]], key[1:], value)
 		return myYaml
 
 	def rm_key(self, myYaml, key):
-		self.log("delete_key {}".format(key), debug=True)
 		if len(key) == 1:
 			del myYaml[key[0]]
 		elif key[0] in myYaml:
