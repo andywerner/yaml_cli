@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+import fileinput
 import yaml
 
 from yaml_cli.version import __version__
@@ -38,9 +39,7 @@ class YamlCli(object):
 		self.VERBOSE = args.verbose or args.debug
 		self.log("Input argparse: {}".format(args), debug=True)
 
-		myYaml = {}
-		if args.input:
-			myYaml = self.load_yaml(args.input)
+		myYaml = self.get_input_yaml(args.input)
 
 		if args.set_keys:
 			for elem in args.set_keys:
@@ -57,22 +56,50 @@ class YamlCli(object):
 			self.stdout_yaml(myYaml)
 
 
-	def load_yaml(self, name):
+	def get_input_yaml(self, filename):
+		"""
+		Get YAML input either from file or from STDIN
+		In case of any error, sys.exit(1) is called
+		:param filename:
+		:return: dict YAML data
+		"""
+		if filename:
+			return self.load_yaml_from_file(filename)
+		else:
+			return self.read_yaml_from_sdtin()
+
+	def load_yaml_from_file(self, name):
 		"""
 		load YAML file
+		In case of any error, this function calls sys.exit(1)
 		:param name: path & file name
 		:return: YAML as dict
 		"""
-		res = None
 		try:
 			with open(name, 'r') as stream:
 				try:
-					return yaml.load(stream)
+					return yaml.safe_load(stream)
 				except yaml.YAMLError as exc:
 					print(exc)
 					sys.exit(1)
 		except IOError as e:
 			print(e)
+			sys.exit(1)
+
+	def read_yaml_from_sdtin(self):
+		res = ''
+		if not sys.stdin.isatty():
+			res = sys.stdin.read()
+		try:
+			read = yaml.safe_load(res)
+			# Let's find out why load(sometimes returns plain strings or None a if this has a good reason)
+			if type(read) is dict:
+				return read
+			else:
+				print("No valid YAML input: '%s'" % res)
+				sys.exit(1)
+		except yaml.YAMLError as exc:
+			print(exc)
 			sys.exit(1)
 
 	def save_yaml(self, name, data):
