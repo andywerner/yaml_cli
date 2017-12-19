@@ -56,9 +56,9 @@ andy:
 ## Usage
 
 ```text
-usage: yaml_cli [-h] [-i INPUT] [-o OUTPUT] [-d KEY] [-s KEY VAL] [-n KEY VAL]
-                [-b KEY VAL] [-l KEY [VAL ...]] [--null KEY] [--version] [-v]
-                [--debug]
+usage: yaml_cli [-h] [-i INPUT] [-o OUTPUT] [-f FILE] [-d KEY] [-s KEY VAL]
+                [-n KEY VAL] [-b KEY VAL] [-l KEY [VAL ...]] [--null KEY]
+                [--version] [-v] [--debug]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -68,6 +68,7 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         Output file. If not provided output is written to
                         STDOUT
+  -f FILE, --file FILE  YAML file for inplace manipulation.
   -d KEY, --delete KEY  Delete key: mykey:subkey:subkey. Skipped silently if
                         key doesn't exist.
   -s KEY VAL, --string KEY VAL
