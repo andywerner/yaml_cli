@@ -22,24 +22,28 @@ class YamlCli(object):
 
 	def __init__(self):
 		parser = argparse.ArgumentParser()
-		parser.add_argument('-i', '--input', type=str, help="YAML file to load. Of not provided an empty YAML will be the base for all operations.")
-		parser.add_argument('-o', '--output', type=str, help="Output file. If not provided output is written to STDOUT")
-		parser.add_argument('-d', '--delete', action=RmKeyAction, help="Delete key: {}. Skipped silently if key doesn't exist.".format(HELP_KEY_SYNTAX))
-		parser.add_argument('-s', '--string', action=KeyValueAction, help="Set key with string value: {} 'my value'".format(HELP_KEY_SYNTAX))
-		parser.add_argument('-n', '--number', action=NumberKeyValueAction, help="Set key with number value: {} 3.7".format(HELP_KEY_SYNTAX))
+		parser.add_argument('-i', '--input',   type=str, help="YAML file to load. Of not provided an empty YAML will be the base for all operations.")
+		parser.add_argument('-o', '--output',  type=str, help="Output file. If not provided output is written to STDOUT")
+		parser.add_argument('-f', '--file',    type=str, help="YAML file for inplace manipulation.")
+		parser.add_argument('-d', '--delete',  action=RmKeyAction, help="Delete key: {}. Skipped silently if key doesn't exist.".format(HELP_KEY_SYNTAX))
+		parser.add_argument('-s', '--string',  action=KeyValueAction, help="Set key with string value: {} 'my value'".format(HELP_KEY_SYNTAX))
+		parser.add_argument('-n', '--number',  action=NumberKeyValueAction, help="Set key with number value: {} 3.7".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-b', '--boolean', action=BooleanKeyValueAction, help="Set key with number value: {} true (possible values: {} {})".format(HELP_KEY_SYNTAX, BOOLEAN_VALUES_TRUE, BOOLEAN_VALUES_FALSE))
-		parser.add_argument('-l', '--list', action=ListKeyValueAction, help="Set key with value as list of strings: {} intem1 intem2 intem3".format(HELP_KEY_SYNTAX))
-		parser.add_argument('--null', action=NullKeyAction, help="Set key with null value: {}".format(HELP_KEY_SYNTAX))
-		parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
+		parser.add_argument('-l', '--list',    action=ListKeyValueAction, help="Set key with value as list of strings: {} intem1 intem2 intem3".format(HELP_KEY_SYNTAX))
+		parser.add_argument('--null',          action=NullKeyAction, help="Set key with null value: {}".format(HELP_KEY_SYNTAX))
+		parser.add_argument('--version',       action='version', version='%(prog)s ' + __version__)
 		parser.add_argument('-v', '--verbose', action='store_true', help="Verbose output")
-		parser.add_argument('--debug', action='store_true', help="Debug output")
+		parser.add_argument('--debug',         action='store_true', help="Debug output")
 		args = parser.parse_args()
 
 		self.DEBUG = args.debug
 		self.VERBOSE = args.verbose or args.debug
 		self.log("Input argparse: {}".format(args), debug=True)
 
-		myYaml = self.get_input_yaml(args.input)
+		infile =  args.input or args.file
+		outfile = args.output or args.file
+
+		myYaml = self.get_input_yaml(infile)
 
 		if args.set_keys:
 			for elem in args.set_keys:
@@ -50,8 +54,8 @@ class YamlCli(object):
 					self.log("deleting key {}".format(elem))
 					myYaml = self.rm_key(myYaml, elem['key'])
 
-		if args.output:
-			self.save_yaml(args.output, myYaml)
+		if outfile:
+			self.save_yaml(outfile, myYaml)
 		else:
 			self.stdout_yaml(myYaml)
 
@@ -87,9 +91,9 @@ class YamlCli(object):
 			sys.exit(1)
 
 	def read_yaml_from_sdtin(self):
-		res = ''
-		if not sys.stdin.isatty():
-			res = sys.stdin.read()
+		if sys.stdin.isatty():
+			return dict()
+		res = sys.stdin.read()
 		try:
 			read = yaml.safe_load(res)
 			# Let's find out why load(sometimes returns plain strings or None a if this has a good reason)
