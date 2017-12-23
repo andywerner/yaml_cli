@@ -3,6 +3,8 @@
 import sys
 import argparse
 import fileinput
+import sys
+import os
 import yaml
 
 from yaml_cli.version import __version__
@@ -22,43 +24,51 @@ class YamlCli(object):
 
 	def __init__(self):
 		parser = argparse.ArgumentParser()
-		parser.add_argument('-i', '--input',   type=str, help="YAML file to load. Of not provided an empty YAML will be the base for all operations.")
-		parser.add_argument('-o', '--output',  type=str, help="Output file. If not provided output is written to STDOUT")
-		parser.add_argument('-f', '--file',    type=str, help="YAML file for inplace manipulation.")
+		parser.add_argument('-i', '--input',   type=str, metavar='FILE', help="YAML file to load. ")
+		parser.add_argument('-o', '--output',  type=str, metavar='FILE', help="Output file. If not provided output is written to STDOUT")
+		parser.add_argument('-f', '--file',    type=str, metavar='FILE', help="YAML file for inplace manipulation.")
 		parser.add_argument('-d', '--delete',  action=RmKeyAction, help="Delete key: {}. Skipped silently if key doesn't exist.".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-s', '--string',  action=KeyValueAction, help="Set key with string value: {} 'my value'".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-n', '--number',  action=NumberKeyValueAction, help="Set key with number value: {} 3.7".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-b', '--boolean', action=BooleanKeyValueAction, help="Set key with number value: {} true (possible values: {} {})".format(HELP_KEY_SYNTAX, BOOLEAN_VALUES_TRUE, BOOLEAN_VALUES_FALSE))
 		parser.add_argument('-l', '--list',    action=ListKeyValueAction, help="Set key with value as list of strings: {} intem1 intem2 intem3".format(HELP_KEY_SYNTAX))
 		parser.add_argument('--null',          action=NullKeyAction, help="Set key with null value: {}".format(HELP_KEY_SYNTAX))
+		parser.add_argument('-la', '--list-append', action='store_true', help="If a key to set already exists, do not replace it but instead create a list and append.")
 		parser.add_argument('--version',       action='version', version='%(prog)s ' + __version__)
 		parser.add_argument('-v', '--verbose', action='store_true', help="Verbose output")
 		parser.add_argument('--debug',         action='store_true', help="Debug output")
 		args = parser.parse_args()
 
-		self.DEBUG = args.debug
-		self.VERBOSE = args.verbose or args.debug
-		self.log("Input argparse: {}".format(args), debug=True)
+		try:
+			self.DEBUG = args.debug
+			self.VERBOSE = args.verbose or args.debug
+			self.log("Input argparse: {}".format(args), debug=True)
 
-		infile =  args.input or args.file
-		outfile = args.output or args.file
+			append_mode = args.list_append
 
-		myYaml = self.get_input_yaml(infile)
+			infile =  args.input or args.file
+			outfile = args.output or args.file
 
-		if args.set_keys:
-			for elem in args.set_keys:
-				if elem['action'] == ACTION_SET:
-					self.log("setting key {}".format(elem))
-					myYaml = self.set_key(myYaml, elem['key'], elem['val'])
-				if elem['action'] == ACTION_RM:
-					self.log("deleting key {}".format(elem))
-					myYaml = self.rm_key(myYaml, elem['key'])
+			myYaml = self.get_input_yaml(infile)
 
-		if outfile:
-			self.save_yaml(outfile, myYaml)
-		else:
-			self.stdout_yaml(myYaml)
+			if args.set_keys:
+				for elem in args.set_keys:
+					try:
+						if elem['action'] == ACTION_SET:
+							self.log("setting key {}".format(elem))
+							myYaml = self.set_key(myYaml, elem['key'], elem['val'], append_mode)
+						if elem['action'] == ACTION_RM:
+							self.log("deleting key {}".format(elem))
+							myYaml = self.rm_key(myYaml, elem['key'])
+					except:
+						log_exception("Exception while handling key {}".format(elem['key']))
 
+			if outfile:
+				self.save_yaml(outfile, myYaml)
+			else:
+				self.stdout_yaml(myYaml)
+		except Exception:
+			log_exception()
 
 	def get_input_yaml(self, filename):
 		"""
@@ -127,22 +137,28 @@ class YamlCli(object):
 		"""
 		print(yaml.dump(data, default_flow_style=False))
 
-	def set_key(self, myYaml, key, value):
+	def set_key(self, myYaml, key, value, append_mode=False):
 		"""
 		Set or add a key to given YAML data. Call itself recursively.
 		:param myYaml: YAML data to be modified
 		:param key: key as array of key tokens
 		:param value: value of any data type
+		:param append_mode default is False
 		:return: modified YAML data
 		"""
 		# self.log("set_key {} = {} | yaml: {}".format(key, value, myYaml), debug=True)
 		if len(key) == 1:
-			myYaml[key[0]] = value
+			if not append_mode or not key[0] in myYaml:
+				myYaml[key[0]] = value
+			else:
+				if type(myYaml[key[0]]) is not list:
+					myYaml[key[0]] = [myYaml[key[0]]]
+				myYaml[key[0]].append(value)
 		else:
 			if not key[0] in myYaml or type(myYaml[key[0]]) is not dict:
 				# self.log("set_key {} = {} creating item".format(key, value, myYaml), debug=True)
 				myYaml[key[0]] = {}
-			myYaml[key[0]] = self.set_key(myYaml[key[0]], key[1:], value)
+			myYaml[key[0]] = self.set_key(myYaml[key[0]], key[1:], value, append_mode)
 		return myYaml
 
 	def rm_key(self, myYaml, key):
@@ -369,7 +385,7 @@ class KeyValueType(object):
 		:param string: string read from command line
 		:return: tokenized key as list
 		"""
-		arr = string.split(':')
+		arr = self._split_unescape(string)
 		if len(arr) != len(filter(None, arr)):
 			msg = "'{}' is not a valid key".format(string)
 			raise argparse.ArgumentTypeError(msg)
@@ -384,6 +400,44 @@ class KeyValueType(object):
 		:return:
 		"""
 		return string
+
+	@staticmethod
+	def _split_unescape(s, delim=':', escape='\\', unescape=True):
+		"""
+		>>> split_unescape('foo,bar', ',')
+		['foo', 'bar']
+		>>> split_unescape('foo$,bar', ',', '$')
+		['foo,bar']
+		>>> split_unescape('foo$$,bar', ',', '$', unescape=True)
+		['foo$', 'bar']
+		>>> split_unescape('foo$$,bar', ',', '$', unescape=False)
+		['foo$$', 'bar']
+		>>> split_unescape('foo$', ',', '$', unescape=True)
+		['foo$']
+		from: https://stackoverflow.com/a/21882672/2631798
+		"""
+		print("ANDYTEST _split_unescape() s: {}, escape: {}".format(s, escape))
+		ret = []
+		current = []
+		itr = iter(s)
+		for ch in itr:
+			if ch == escape:
+				try:
+					# skip the next character; it has been escaped!
+					if not unescape:
+						current.append(escape)
+					current.append(next(itr))
+				except StopIteration:
+					if unescape:
+						current.append(escape)
+			elif ch == delim:
+				# split! (add current to the list and reset it)
+				ret.append(''.join(current))
+				current = []
+			else:
+				current.append(ch)
+		ret.append(''.join(current))
+		return ret
 
 
 class NumberKeyValueType(KeyValueType):
@@ -410,5 +464,13 @@ class BooleanKeyValueType(KeyValueType):
 
 
 
-
-
+def log_exception(msg='None', exit=True):
+	print("{exc_type}: {exc_msg} ({f_name}:{l_num}) - Message: {msg}".format(
+		exc_type=sys.exc_info()[0].__name__,
+		exc_msg=sys.exc_info()[1],
+		f_name=os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1],
+		l_num=sys.exc_info()[2].tb_lineno,
+		msg=msg
+	))
+	if exit:
+		sys.exit(1)
