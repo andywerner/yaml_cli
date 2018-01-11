@@ -416,7 +416,6 @@ class KeyValueType(object):
 		['foo$']
 		from: https://stackoverflow.com/a/21882672/2631798
 		"""
-		print("ANDYTEST _split_unescape() s: {}, escape: {}".format(s, escape))
 		ret = []
 		current = []
 		itr = iter(s)
