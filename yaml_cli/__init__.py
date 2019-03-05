@@ -30,7 +30,7 @@ class YamlCli(object):
 		parser.add_argument('-d', '--delete',  action=RmKeyAction, help="Delete key: {}. Skipped silently if key doesn't exist.".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-s', '--string',  action=KeyValueAction, help="Set key with string value: {} 'my value'".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-n', '--number',  action=NumberKeyValueAction, help="Set key with number value: {} 3.7".format(HELP_KEY_SYNTAX))
-		parser.add_argument('-b', '--boolean', action=BooleanKeyValueAction, help="Set key with number value: {} true (possible values: {} {})".format(HELP_KEY_SYNTAX, BOOLEAN_VALUES_TRUE, BOOLEAN_VALUES_FALSE))
+		parser.add_argument('-b', '--boolean', action=BooleanKeyValueAction, help="Set key with boolean value: {} true (possible values: {} {})".format(HELP_KEY_SYNTAX, BOOLEAN_VALUES_TRUE, BOOLEAN_VALUES_FALSE))
 		parser.add_argument('-l', '--list',    action=ListKeyValueAction, help="Set key with value as list of strings: {} intem1 intem2 intem3".format(HELP_KEY_SYNTAX))
 		parser.add_argument('--null',          action=NullKeyAction, help="Set key with null value: {}".format(HELP_KEY_SYNTAX))
 		parser.add_argument('-la', '--list-append', action='store_true', help="If a key to set already exists, do not replace it but instead create a list and append.")
