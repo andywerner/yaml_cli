@@ -77,7 +77,7 @@ optional arguments:
   -n KEY VAL, --number KEY VAL
                         Set key with number value: mykey:subkey:subkey 3.7
   -b KEY VAL, --boolean KEY VAL
-                        Set key with number value: mykey:subkey:subkey true
+                        Set key with boolean value: mykey:subkey:subkey true
                         (possible values: ('1', 'true', 'True', 'yes') ('',
                         '0', 'false', 'False', 'no'))
   -l KEY [VAL ...], --list KEY [VAL ...]
