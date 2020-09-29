@@ -1,19 +1,23 @@
 from setuptools import setup, find_packages
+import os
 
-execfile('yaml_cli/version.py')
+# execfile('yaml_cli/version.py')
 
 def params():
-	name = 'yaml_cli'  # This is the name of your PyPI-package.
-	version = __version__
-	# scripts = ['helloworld']  # The name of your scipt, and also the command you'll be using for calling it
+	name = 'yaml_cli'
+	
+	# Get the version from a VERSION file
+	version_file = open(os.path.join("./", 'VERSION'))
+	version = version_file.read().strip()
+
 	description = "A command line interface to read and manipulate YAML files. Based on python, distributed as pip."
 	author = "Andy Werner"
 	author_email = "andy@mr-beam.org"
 	url = "https://github.com/Gallore/yaml_cli"
-	# license = "proprietary"
+	license = 'MIT License'
 
 	packages = find_packages()
-	zip_safe = False # ?
+	zip_safe = True # http://peak.telecommunity.com/DevCenter/setuptools#setting-the-zip-safe-flag
 
 	install_requires = [
 		"PyYAML",
