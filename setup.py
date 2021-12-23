@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-execfile('yaml_cli/version.py')
+exec(compile(open('yaml_cli/version.py', "rb").read(), 'yaml_cli/version.py', 'exec'))
 
 def params():
 	name = 'yaml_cli'  # This is the name of your PyPI-package.
